@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -19,7 +19,6 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use async_trait::async_trait;
 use derive_more::From;
 use either::Either;
 use itertools::Itertools as _;
@@ -223,7 +222,6 @@ impl<World, Out: Clone + io::Write> Clone for Libtest<World, Out> {
     }
 }
 
-#[async_trait(?Send)]
 impl<W: World + Debug, Out: io::Write> Writer<W> for Libtest<W, Out> {
     type Cli = Cli;
 
@@ -268,8 +266,8 @@ impl<W: Debug + World> Libtest<W, io::Stdout> {
     pub fn or<AnotherWriter: Writer<W>>(
         writer: AnotherWriter,
     ) -> Or<W, AnotherWriter> {
-        writer::Or::new(writer, Self::stdout(), |_, cli| {
-            !matches!(cli.right.format, Some(writer::libtest::Format::Json))
+        Or::new(writer, Self::stdout(), |_, cli| {
+            !matches!(cli.right.format, Some(Format::Json))
         })
     }
 
@@ -651,12 +649,9 @@ impl<W: Debug + World, Out: io::Write> Libtest<W, Out> {
                 }
             }
             Step::Failed(_, loc, world, err) => {
-                if retries
-                    .map(|r| {
-                        r.left > 0 && !matches!(err, event::StepError::NotFound)
-                    })
-                    .unwrap_or_default()
-                {
+                if retries.is_some_and(|r| {
+                    r.left > 0 && !matches!(err, event::StepError::NotFound)
+                }) {
                     self.retried += 1;
                 } else {
                     self.failed += 1;
@@ -816,20 +811,16 @@ where
     }
 }
 
-#[async_trait(?Send)]
-impl<'val, W, Val, Out> Arbitrary<'val, W, Val> for Libtest<W, Out>
+impl<W, Val, Out> Arbitrary<W, Val> for Libtest<W, Out>
 where
     W: World + Debug,
-    Val: AsRef<str> + 'val,
+    Val: AsRef<str>,
     Out: io::Write,
 {
-    async fn write(&mut self, val: Val)
-    where
-        'val: 'async_trait,
-    {
+    async fn write(&mut self, val: Val) {
         self.output
             .write_line(val.as_ref())
-            .unwrap_or_else(|e| panic!("Failed to write: {e}"));
+            .unwrap_or_else(|e| panic!("failed to write: {e}"));
     }
 }
 
@@ -1017,7 +1008,6 @@ impl TestEventInner {
     }
 
     /// Adds a [`TestEventInner::stdout`].
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     fn with_stdout(mut self, stdout: String) -> Self {
         self.stdout = Some(stdout);
         self

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -532,7 +532,6 @@ impl<World, Which, Before, After> Basic<World, Which, Before, After> {
     /// [`Concurrent`]: ScenarioType::Concurrent
     /// [`Serial`]: ScenarioType::Serial
     /// [`Scenario`]: gherkin::Scenario
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn which_scenario<F>(self, func: F) -> Basic<World, F, Before, After>
     where
@@ -576,7 +575,6 @@ impl<World, Which, Before, After> Basic<World, Which, Before, After> {
     /// Function determining [`Scenario`]'s [`RetryOptions`].
     ///
     /// [`Scenario`]: gherkin::Scenario
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn retry_options<R>(mut self, func: R) -> Self
     where
@@ -598,7 +596,6 @@ impl<World, Which, Before, After> Basic<World, Which, Before, After> {
     /// [`Background`]: gherkin::Background
     /// [`Scenario`]: gherkin::Scenario
     /// [`Step`]: gherkin::Step
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn before<Func>(self, func: Func) -> Basic<World, Which, Func, After>
     where
@@ -650,7 +647,6 @@ impl<World, Which, Before, After> Basic<World, Which, Before, After> {
     /// [`Scenario`]: gherkin::Scenario
     /// [`Skipped`]: event::Step::Skipped
     /// [`Step`]: gherkin::Step
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn after<Func>(self, func: Func) -> Basic<World, Which, Before, Func>
     where
@@ -695,7 +691,6 @@ impl<World, Which, Before, After> Basic<World, Which, Before, After> {
     /// Sets the given [`Collection`] of [`Step`]s to this [`Runner`].
     ///
     /// [`Collection`]: step::Collection
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn steps(mut self, steps: step::Collection<World>) -> Self {
         self.steps = steps;
@@ -1003,6 +998,8 @@ async fn execute<W, Before, After>(
                     coll.start_scenarios(&runnable);
                 }
                 async {
+                    // Cannot annotate `async` block with `-> !`.
+                    #[allow(clippy::infinite_loop)]
                     loop {
                         while let Some(logs) = logs_collector
                             .as_mut()
@@ -1455,7 +1452,7 @@ where
         if let Some(hook) = self.before_hook.as_ref() {
             self.send_event(event::Cucumber::scenario(
                 Arc::clone(feature),
-                rule.map(Arc::clone),
+                rule.cloned(),
                 Arc::clone(scenario),
                 event::Scenario::hook_started(HookType::Before)
                     .with_retries(retries),
@@ -1498,7 +1495,7 @@ where
                 Ok(world) => {
                     self.send_event(event::Cucumber::scenario(
                         Arc::clone(feature),
-                        rule.map(Arc::clone),
+                        rule.cloned(),
                         Arc::clone(scenario),
                         event::Scenario::hook_passed(HookType::Before)
                             .with_retries(retries),
@@ -2240,6 +2237,7 @@ impl Features {
 
         let mut with_retries = HashMap::<_, Vec<_>>::new();
         let mut without_retries: Scenarios = HashMap::new();
+        #[allow(clippy::iter_over_hash_type)] // order doesn't matter here
         for (which, values) in scenarios {
             for (id, f, r, s, ret) in values {
                 match ret {
@@ -2269,6 +2267,7 @@ impl Features {
 
         let mut storage = self.scenarios.lock().await;
 
+        #[allow(clippy::iter_over_hash_type)] // order doesn't matter here
         for (which, values) in with_retries {
             let ty_storage = storage.entry(which).or_default();
             for (id, f, r, s, ret) in values {
@@ -2276,20 +2275,22 @@ impl Features {
             }
         }
 
-        if without_retries.get(&ScenarioType::Serial).is_none() {
-            // If there are no Serial Scenarios we just extending already
-            // existing Concurrent Scenarios.
-            for (which, values) in without_retries {
-                storage.entry(which).or_default().extend(values);
-            }
-        } else {
+        if without_retries.contains_key(&ScenarioType::Serial) {
             // If there are Serial Scenarios we insert all Serial and Concurrent
             // Scenarios in front.
             // This is done to execute them closely to one another, so the
             // output wouldn't hang on executing other Concurrent Scenarios.
+            #[allow(clippy::iter_over_hash_type)] // order doesn't matter here
             for (which, mut values) in without_retries {
                 let old = mem::take(storage.entry(which).or_default());
                 values.extend(old);
+                storage.entry(which).or_default().extend(values);
+            }
+        } else {
+            // If there are no Serial Scenarios, we just extend already existing
+            // Concurrent Scenarios.
+            #[allow(clippy::iter_over_hash_type)] // order doesn't matter here
+            for (which, values) in without_retries {
                 storage.entry(which).or_default().extend(values);
             }
         }

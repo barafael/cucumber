@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2020-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -119,7 +119,6 @@ impl Definition {
 
         quote! {
             #[automatically_derived]
-            #[::cucumber::codegen::async_trait(?Send)]
             impl #impl_gens ::cucumber::World for #world #ty_gens
                  #where_clause
             {
@@ -219,7 +218,6 @@ mod spec {
             }
 
             #[automatically_derived]
-            #[::cucumber::codegen::async_trait(?Send)]
             impl ::cucumber::World for World {
                 type Error = ::cucumber::codegen::anyhow::Error;
 
@@ -349,7 +347,6 @@ mod spec {
             }
 
             #[automatically_derived]
-            #[::cucumber::codegen::async_trait(?Send)]
             impl<T> ::cucumber::World for World<T> {
                 type Error = ::cucumber::codegen::anyhow::Error;
 
@@ -480,7 +477,6 @@ mod spec {
             }
 
             #[automatically_derived]
-            #[::cucumber::codegen::async_trait(?Send)]
             impl<T> ::cucumber::World for World<T> {
                 type Error = ::cucumber::codegen::anyhow::Error;
 

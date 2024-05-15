@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -210,7 +210,7 @@ pub trait WriteStrExt: io::Write {
     ///
     /// If this writer fails to write the given `string`.
     fn write_str(&mut self, string: impl AsRef<str>) -> io::Result<()> {
-        self.write(string.as_ref().as_bytes()).map(drop)
+        self.write_all(string.as_ref().as_bytes())
     }
 
     /// Writes the given `string` into this writer followed by a newline.

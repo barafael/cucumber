@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2020-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -16,7 +16,7 @@ use cucumber_expressions::{Expression, Parameter, SingleExpression, Spanned};
 use inflections::case::to_pascal_case;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use regex::{self, Regex};
+use regex::Regex;
 use syn::{
     parse::{Parse, ParseStream},
     parse_quote,
@@ -53,7 +53,7 @@ struct Step {
     /// reference.
     ///
     /// [`gherkin::Step`]: https://bit.ly/3j42hcd
-    step_arg_name: Option<syn::Ident>,
+    arg_name_of_step_context: Option<syn::Ident>,
 }
 
 impl Step {
@@ -97,7 +97,7 @@ impl Step {
             attr_name,
             attr_arg,
             func,
-            step_arg_name,
+            arg_name_of_step_context: step_arg_name,
         })
     }
 
@@ -274,7 +274,7 @@ impl Step {
 
                 Ok((func_args, addon_parsing))
             }
-        } else if self.step_arg_name.is_some() {
+        } else if self.arg_name_of_step_context.is_some() {
             Ok((
                 quote! { ::std::borrow::Borrow::borrow(&__cucumber_ctx.step), },
                 None,
@@ -304,7 +304,8 @@ impl Step {
         let (ident, ty) = parse_fn_arg(arg)?;
 
         let is_ctx_arg =
-            self.step_arg_name.as_ref().map(|i| *i == *ident) == Some(true);
+            self.arg_name_of_step_context.as_ref().map(|i| *i == *ident)
+                == Some(true);
 
         let decl = if is_ctx_arg {
             quote! {
@@ -385,7 +386,7 @@ impl Step {
         &self,
         arg: &syn::FnArg,
     ) -> syn::Result<TokenStream> {
-        if let Some(name) = &self.step_arg_name {
+        if let Some(name) = &self.arg_name_of_step_context {
             let (ident, _) = parse_fn_arg(arg)?;
             if name == ident {
                 return Ok(quote! {
@@ -443,8 +444,11 @@ impl Step {
         expr: &syn::LitStr,
     ) -> syn::Result<TokenStream> {
         let expr = expr.value();
-        let params =
-            Parameters::new(&expr, &self.func, self.step_arg_name.as_ref())?;
+        let params = Parameters::new(
+            &expr,
+            &self.func,
+            self.arg_name_of_step_context.as_ref(),
+        )?;
 
         let provider_impl =
             params.gen_provider_impl(&parse_quote! { Provider });
@@ -519,7 +523,7 @@ impl<'p> Parameters<'p> {
                     Ok(res) => res,
                     Err(err) => return Some(Err(err)),
                 };
-                let is_step = step.map(|s| s == ident).unwrap_or_default();
+                let is_step = step.is_some_and(|s| s == ident);
                 (!is_step).then_some(Ok(ty))
             })
             .collect::<syn::Result<Vec<_>>>()?;
@@ -746,16 +750,11 @@ fn remove_all_attrs_if_needed<'a>(
     func: &'a mut syn::ItemFn,
 ) -> (Vec<&'a syn::FnArg>, Vec<syn::Attribute>) {
     let has_other_step_arguments = func.attrs.iter().any(|attr| {
-        attr.meta
-            .path()
-            .segments
-            .last()
-            .map(|segment| {
-                ["given", "when", "then"]
-                    .iter()
-                    .any(|step| segment.ident == step)
-            })
-            .unwrap_or_default()
+        attr.meta.path().segments.last().is_some_and(|segment| {
+            ["given", "when", "then"]
+                .iter()
+                .any(|step| segment.ident == step)
+        })
     });
 
     func.sig
@@ -782,8 +781,7 @@ fn find_attr(attr_arg: &str, arg: &mut syn::FnArg) -> Option<syn::Attribute> {
                 attr.meta
                     .path()
                     .get_ident()
-                    .map(|ident| ident == attr_arg)
-                    .unwrap_or_default()
+                    .is_some_and(|ident| ident == attr_arg)
             })
             .cloned()
     } else {

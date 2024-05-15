@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -43,6 +43,7 @@
     clippy::empty_line_after_outer_attr,
     clippy::empty_structs_with_brackets,
     clippy::equatable_if_let,
+    clippy::empty_enum_variants_with_brackets,
     clippy::exit,
     clippy::expect_used,
     clippy::fallible_impl_from,
@@ -53,16 +54,18 @@
     clippy::format_push_string,
     clippy::get_unwrap,
     clippy::if_then_some_else_none,
-    clippy::implied_bounds_in_impls,
     clippy::imprecise_flops,
     clippy::index_refutable_slice,
+    clippy::infinite_loop,
     clippy::iter_on_empty_collections,
     clippy::iter_on_single_items,
+    clippy::iter_over_hash_type,
     clippy::iter_with_drain,
     clippy::large_include_file,
     clippy::large_stack_frames,
     clippy::let_underscore_untyped,
     clippy::lossy_float_literal,
+    clippy::manual_c_str_literals,
     clippy::manual_clamp,
     clippy::map_err_ignore,
     clippy::mem_forget,
@@ -86,8 +89,10 @@
     clippy::print_stderr,
     clippy::print_stdout,
     clippy::pub_without_shorthand,
+    clippy::ref_as_ptr,
     clippy::rc_buffer,
     clippy::rc_mutex,
+    clippy::read_zero_byte_vec,
     clippy::readonly_write_lock,
     clippy::redundant_clone,
     clippy::redundant_type_annotations,
@@ -115,6 +120,7 @@
     clippy::try_err,
     clippy::undocumented_unsafe_blocks,
     clippy::unimplemented,
+    clippy::uninhabited_references,
     clippy::unnecessary_safety_comment,
     clippy::unnecessary_safety_doc,
     clippy::unnecessary_self_imports,
@@ -128,29 +134,31 @@
     clippy::useless_let_if_seq,
     clippy::verbose_file_reads,
     clippy::wildcard_enum_match_arm,
+    explicit_outlives_requirements,
     future_incompatible,
     let_underscore_drop,
     meta_variable_misuse,
+    missing_abi,
     missing_copy_implementations,
     missing_debug_implementations,
     missing_docs,
     semicolon_in_expressions_from_macros,
+    single_use_lifetimes,
+    unit_bindings,
     unreachable_pub,
+    unsafe_op_in_unsafe_fn,
+    unstable_features,
     unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
-    unused_labels,
     unused_lifetimes,
+    unused_macro_rules,
     unused_qualifications,
     unused_results,
-    unused_tuple_struct_fields,
     variant_size_differences
 )]
 // TODO: Remove on next `derive_more` major version.
 #![allow(clippy::uninlined_format_args)]
-// TODO: Massive false positives on `.await` points. Try remove on next Rust
-//       version.
-#![allow(clippy::multiple_unsafe_ops_per_block)]
 
 pub mod cli;
 mod cucumber;
@@ -176,11 +184,9 @@ mod actually_used_crates_in_tests_and_book {
     use tokio as _;
 }
 
-use std::fmt::Display;
 #[cfg(feature = "macros")]
 use std::{fmt::Debug, path::Path};
-
-use async_trait::async_trait;
+use std::{fmt::Display, future::Future};
 
 #[cfg(feature = "macros")]
 use self::{
@@ -223,13 +229,12 @@ pub use self::{
 /// [1]: https://docs.rs/once_cell
 /// [2]: https://doc.rust-lang.org/book/ch16-03-shared-state.html
 /// [Cucumber]: https://cucumber.io
-#[async_trait(?Send)]
 pub trait World: Sized + 'static {
     /// Error of creating a new [`World`] instance.
     type Error: Display;
 
     /// Creates a new [`World`] instance.
-    async fn new() -> Result<Self, Self::Error>;
+    fn new() -> impl Future<Output = Result<Self, Self::Error>>;
 
     #[cfg(feature = "macros")]
     /// Returns runner for tests with auto-wired steps marked by [`given`],
@@ -281,11 +286,11 @@ pub trait World: Sized + 'static {
     /// [`Step`] panicked.
     ///
     /// [`Feature`]: gherkin::Feature
-    async fn run<I: AsRef<Path>>(input: I)
+    fn run<I: AsRef<Path>>(input: I) -> impl Future<Output = ()>
     where
         Self: Debug + WorldInventory,
     {
-        Self::cucumber().run_and_exit(input).await;
+        Self::cucumber().run_and_exit(input)
     }
 
     #[cfg(feature = "macros")]
@@ -302,7 +307,7 @@ pub trait World: Sized + 'static {
     /// [`Feature`]: gherkin::Feature
     /// [`Scenario`]: gherkin::Scenario
     /// [`Step`]: gherkin::Step
-    async fn filter_run<I, F>(input: I, filter: F)
+    fn filter_run<I, F>(input: I, filter: F) -> impl Future<Output = ()>
     where
         Self: Debug + WorldInventory,
         I: AsRef<Path>,
@@ -313,6 +318,6 @@ pub trait World: Sized + 'static {
             ) -> bool
             + 'static,
     {
-        Self::cucumber().filter_run_and_exit(input, filter).await;
+        Self::cucumber().filter_run_and_exit(input, filter)
     }
 }

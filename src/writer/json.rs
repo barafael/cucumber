@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -18,7 +18,6 @@ use std::{
     time::SystemTime,
 };
 
-use async_trait::async_trait;
 use base64::Engine as _;
 use derive_more::Display;
 use inflector::Inflector as _;
@@ -72,18 +71,18 @@ pub struct Json<Out: io::Write> {
     logs: Vec<String>,
 }
 
-#[async_trait(?Send)]
 impl<W: World + Debug, Out: io::Write> Writer<W> for Json<Out> {
     type Cli = cli::Empty;
 
     async fn handle_event(
         &mut self,
         event: parser::Result<Event<event::Cucumber<W>>>,
+        #[allow(clippy::let_underscore_untyped)] // false positive
         _: &Self::Cli,
     ) {
         use event::{Cucumber, Rule};
 
-        match event.map(event::Event::split) {
+        match event.map(Event::split) {
             Err(parser::Error::Parsing(e)) => {
                 let feature = Feature::parsing_err(&e);
                 self.features.push(feature);

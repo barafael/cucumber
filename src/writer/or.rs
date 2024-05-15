@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -9,8 +9,6 @@
 // except according to those terms.
 
 //! Passing events to one of two [`Writer`]s based on a predicate.
-
-use async_trait::async_trait;
 
 use crate::{cli, event, parser, writer, Event, World, Writer};
 
@@ -57,7 +55,6 @@ impl<L, R, F> Or<L, R, F> {
 }
 
 #[warn(clippy::missing_trait_methods)]
-#[async_trait(?Send)]
 impl<W, L, R, F> Writer<W> for Or<L, R, F>
 where
     W: World,

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2020-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -42,6 +42,7 @@
     clippy::empty_line_after_outer_attr,
     clippy::empty_structs_with_brackets,
     clippy::equatable_if_let,
+    clippy::empty_enum_variants_with_brackets,
     clippy::exit,
     clippy::expect_used,
     clippy::fallible_impl_from,
@@ -52,16 +53,18 @@
     clippy::format_push_string,
     clippy::get_unwrap,
     clippy::if_then_some_else_none,
-    clippy::implied_bounds_in_impls,
     clippy::imprecise_flops,
     clippy::index_refutable_slice,
+    clippy::infinite_loop,
     clippy::iter_on_empty_collections,
     clippy::iter_on_single_items,
+    clippy::iter_over_hash_type,
     clippy::iter_with_drain,
     clippy::large_include_file,
     clippy::large_stack_frames,
     clippy::let_underscore_untyped,
     clippy::lossy_float_literal,
+    clippy::manual_c_str_literals,
     clippy::manual_clamp,
     clippy::map_err_ignore,
     clippy::mem_forget,
@@ -85,8 +88,10 @@
     clippy::print_stderr,
     clippy::print_stdout,
     clippy::pub_without_shorthand,
+    clippy::ref_as_ptr,
     clippy::rc_buffer,
     clippy::rc_mutex,
+    clippy::read_zero_byte_vec,
     clippy::readonly_write_lock,
     clippy::redundant_clone,
     clippy::redundant_type_annotations,
@@ -114,6 +119,7 @@
     clippy::try_err,
     clippy::undocumented_unsafe_blocks,
     clippy::unimplemented,
+    clippy::uninhabited_references,
     clippy::unnecessary_safety_comment,
     clippy::unnecessary_safety_doc,
     clippy::unnecessary_self_imports,
@@ -127,22 +133,27 @@
     clippy::useless_let_if_seq,
     clippy::verbose_file_reads,
     clippy::wildcard_enum_match_arm,
+    explicit_outlives_requirements,
     future_incompatible,
     let_underscore_drop,
     meta_variable_misuse,
+    missing_abi,
     missing_copy_implementations,
     missing_debug_implementations,
     missing_docs,
     semicolon_in_expressions_from_macros,
+    single_use_lifetimes,
+    unit_bindings,
     unreachable_pub,
+    unsafe_op_in_unsafe_fn,
+    unstable_features,
     unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
-    unused_labels,
     unused_lifetimes,
+    unused_macro_rules,
     unused_qualifications,
     unused_results,
-    unused_tuple_struct_fields,
     variant_size_differences
 )]
 
@@ -151,17 +162,6 @@ mod parameter;
 mod world;
 
 use proc_macro::TokenStream;
-
-// TODO: Remove once tests run without complains about it.
-#[cfg(test)]
-mod actually_used_crates_in_tests {
-    use async_trait as _;
-    use cucumber as _;
-    use derive_more as _;
-    use futures as _;
-    use tempfile as _;
-    use tokio as _;
-}
 
 /// Helper macro for generating public shims for [`macro@given`], [`macro@when`]
 /// and [`macro@then`] attributes.

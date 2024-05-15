@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -18,7 +18,6 @@ use std::{
     str::FromStr,
 };
 
-use async_trait::async_trait;
 use derive_more::{Deref, DerefMut};
 use itertools::Itertools as _;
 use once_cell::sync::Lazy;
@@ -132,7 +131,6 @@ pub struct Basic<Out: io::Write = io::Stdout> {
     verbosity: Verbosity,
 }
 
-#[async_trait(?Send)]
 impl<W, Out> Writer<W> for Basic<Out>
 where
     W: World + Debug,
@@ -163,23 +161,19 @@ where
                 Feature::Finished => Ok(()),
             },
         }
-        .unwrap_or_else(|e| panic!("Failed to write into terminal: {e}"));
+        .unwrap_or_else(|e| panic!("failed to write into terminal: {e}"));
     }
 }
 
-#[async_trait(?Send)]
-impl<'val, W, Val, Out> writer::Arbitrary<'val, W, Val> for Basic<Out>
+impl<W, Val, Out> writer::Arbitrary<W, Val> for Basic<Out>
 where
     W: World + Debug,
-    Val: AsRef<str> + 'val,
+    Val: AsRef<str>,
     Out: io::Write,
 {
-    async fn write(&mut self, val: Val)
-    where
-        'val: 'async_trait,
-    {
+    async fn write(&mut self, val: Val) {
         self.write_line(val.as_ref())
-            .unwrap_or_else(|e| panic!("Failed to write: {e}"));
+            .unwrap_or_else(|e| panic!("failed to write: {e}"));
     }
 }
 
@@ -428,6 +422,7 @@ impl<Out: io::Write> Basic<Out> {
                     format!("{w:#?}"),
                     self.indent.saturating_sub(3) + 3,
                 ))
+                .filter(|_| self.verbosity.shows_world())
                 .unwrap_or_default(),
             indent = " ".repeat(self.indent.saturating_sub(3)),
         )))
@@ -1009,6 +1004,7 @@ impl<Out: io::Write> Basic<Out> {
                     format!("{w:#?}"),
                     self.indent.saturating_sub(3) + 3,
                 ))
+                .filter(|_| self.verbosity.shows_world())
                 .unwrap_or_default(),
         ));
 

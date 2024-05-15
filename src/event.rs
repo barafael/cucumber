@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2018-2024  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -67,7 +67,6 @@ impl<T> Event<T> {
     }
 
     /// Unwraps the inner [`Event::value`] loosing all the attached metadata.
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn into_inner(self) -> T {
         self.value
@@ -96,7 +95,6 @@ impl<T> Event<T> {
 
     /// Replaces the inner [`Event::value`] with the given one, returning the
     /// old one along.
-    #[allow(clippy::missing_const_for_fn)] // false positive: drop in const
     #[must_use]
     pub fn replace<V>(self, value: V) -> (T, Event<V>) {
         let event = Event {
