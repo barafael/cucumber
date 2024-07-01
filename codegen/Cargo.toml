@@ -1,6 +1,6 @@
 [package]
 name = "cucumber-codegen"
-version = "0.21.0" # should be the same as main crate version
+version = "0.21.1" # should be the same as main crate version
 edition = "2021"
 rust-version = "1.75"
 description = "Code generation for `cucumber` crate."
@@ -23,7 +23,7 @@ proc-macro = true
 [dependencies]
 cucumber-expressions = { version = "0.3", features = ["into-regex"] }
 inflections = "1.1"
-itertools = "0.12"
+itertools = "0.13"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
 regex = "1.5.5"
